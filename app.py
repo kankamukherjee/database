@@ -266,6 +266,7 @@ def download_page():
 
 # --- MAIN APP LOGIC ---
 def main():
+    """Main function to set up and run the Streamlit app pages."""
     st.set_page_config(page_title="Plant DB", layout="wide")
     
     # Apply custom styling
@@ -292,4 +293,6 @@ def main():
     elif page == "Download":
         download_page()
 
+# This block ensures the app runs when the script is executed
 if __name__ == '__main__':
+    main()
