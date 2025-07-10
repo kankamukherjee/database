@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Import the database setup function from create_database.py
 from create_database import setup_database
 
-DB_PATH = 'medicinal_plants_india.db'
+DB_PATH = 'plants.db'
 CSV_PATH = 'medicinal_plants.csv'
 
 # --- DATABASE CONNECTION ---
