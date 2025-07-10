@@ -4,6 +4,38 @@ import sqlite3
 import os
 
 DB_PATH = 'plants.db'
+CSV_PATH = 'medicinal_plants.csv'
+
+def setup_database():
+    """
+    Checks if the database exists. If not, it creates it from the CSV file.
+    This function is designed to run once when the Streamlit app starts.
+    """
+    if not os.path.exists(DB_PATH):
+        st.toast("Database not found. Creating it from CSV...")
+        try:
+            if not os.path.exists(CSV_PATH):
+                st.error(f"Error: The data file '{CSV_PATH}' was not found in the repository.")
+                st.stop()
+
+            df = pd.read_csv(CSV_PATH)
+            
+            # Rename columns for database compatibility
+            df.columns = [
+                'Name_of_Plant', 'Scientific_Name', 'Family', 'Related_Database',
+                'Therapeutic_Use', 'Tissue_Part', 'Preparation_Method',
+                'NE_State_Availability', 'Phytochemicals', 'Phytochemical_Reference',
+                'Literature_Reference'
+            ]
+            
+            conn = sqlite3.connect(DB_PATH)
+            df.to_sql('plants', conn, if_exists='replace', index=False)
+            conn.close()
+            st.toast("Database created successfully! ✔️")
+
+        except Exception as e:
+            st.error(f"An error occurred during database setup: {e}")
+            st.stop()
 
 def get_db_connection():
     """Establishes a connection to the SQLite database."""
@@ -28,7 +60,7 @@ def get_unique_families(conn):
 
 def home_page():
     """Defines the content of the Home page."""
-    st.title("Welcome to the Therapeutic Plants Database")
+    st.title("Welcome to the Therapeutic Plants Database 🍃")
     st.markdown("""
     This database provides comprehensive information about therapeutic plants found in the North-Eastern region of India. 
     Our goal is to create a valuable resource for researchers, students, and enthusiasts interested in medicinal botany.
@@ -52,21 +84,18 @@ def browse_page():
     families = get_unique_families(conn)
     
     if not families:
-        st.warning("No plant families found in the database. Please ensure the database is created correctly.")
+        st.warning("No plant families found. The database might be empty.")
         return
 
-    # Family selection dropdown
     selected_family = st.selectbox("Select a Plant Family to browse:", families)
 
     if selected_family:
         try:
-            # Query the database for plants in the selected family
             query = "SELECT * FROM plants WHERE Family = ?"
             df = pd.read_sql(query, conn, params=(selected_family,))
             
             st.write(f"Displaying plants from the **{selected_family}** family:")
             
-            # Display the data in a more readable format
             if not df.empty:
                 for index, row in df.iterrows():
                     st.subheader(row['Name_of_Plant'])
@@ -92,34 +121,23 @@ def browse_page():
 def contact_page():
     """Defines the content of the Contact page."""
     st.title("Contact Us")
-    st.markdown("""
-    We welcome your questions, feedback, and potential collaborations. Please feel free to reach out to us.
-    """)
+    st.markdown("We welcome your questions, feedback, and potential collaborations.")
     
-    # Using a form for a cleaner layout
     with st.form("contact_form"):
         name = st.text_input("Your Name")
         email = st.text_input("Your Email")
         message = st.text_area("Message")
-        
-        # "Submit" button
         submitted = st.form_submit_button("Submit")
         if submitted:
-            # In a real application, you would handle the form submission here
-            # (e.g., send an email). For this example, we'll just show a message.
             st.success("Thank you for your message! We will get back to you shortly.")
 
 def download_page():
     """Defines the content of the Download page."""
     st.title("Download the Dataset")
-    st.markdown("""
-    You can download the complete dataset used in this application in CSV format.
-    """)
+    st.markdown("You can download the complete dataset used in this application in CSV format.")
     
-    csv_file_path = 'medicinal_plants.csv'
-    
-    if os.path.exists(csv_file_path):
-        with open(csv_file_path, "rb") as file:
+    if os.path.exists(CSV_PATH):
+        with open(CSV_PATH, "rb") as file:
             st.download_button(
                 label="Download CSV",
                 data=file,
@@ -127,24 +145,18 @@ def download_page():
                 mime="text/csv"
             )
     else:
-        st.error(f"The file '{csv_file_path}' was not found. Please make sure it's in the correct directory.")
+        st.error(f"The file '{CSV_PATH}' was not found.")
 
 def main():
     """Main function to run the Streamlit app."""
     st.set_page_config(page_title="Therapeutic Plants DB", layout="wide")
+    
+    # This is the key change: Run the setup function at the start.
+    setup_database()
 
-    # Sidebar for navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Go to", ["Home", "Browse", "Contact", "Download"])
 
-    # Check if the database exists. If not, prompt the user to create it.
-    if not os.path.exists(DB_PATH):
-        st.warning(f"Database '{DB_PATH}' not found.")
-        st.info("Please run the `create_database.py` script first to set up the database.")
-        st.code("python create_database.py")
-        return
-
-    # Page routing
     if page == "Home":
         home_page()
     elif page == "Browse":
