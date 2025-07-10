@@ -6,7 +6,7 @@ import os
 DB_PATH = 'plants.db'
 CSV_PATH = 'medicinal_plants.csv'
 
-# --- DATABASE SETUP (No changes needed here) ---
+# --- DATABASE SETUP ---
 def setup_database():
     """
     Checks if the database exists. If not, it creates it from the CSV file.
@@ -45,254 +45,206 @@ def get_db_connection():
         st.error(f"Database connection error: {e}")
         return None
 
-# --- CUSTOM STYLING (Inspired by your screenshots) ---
+# --- CUSTOM STYLING AND LAYOUT ---
 def load_custom_css():
-    """Injects custom CSS to style the app like the screenshots."""
+    """Injects custom CSS to style the app."""
     st.markdown("""
         <style>
+            /* Remove Streamlit's default header and footer */
+            .st-emotion-cache-18ni7ap, .st-emotion-cache-h4yrc2 {
+                display: none;
+            }
             /* Main theme colors */
+            body {
+                background-color: #003300; /* Dark green background for the whole page */
+            }
             .stApp {
-                background-color: #e8f5e9; /* Light green background */
+                background-color: #e8f5e9;
+                border: 3px solid #006400;
+                border-radius: 15px;
+                padding: 1rem;
+                margin: 1rem;
             }
             
-            /* Main content area */
-            [data-testid="stAppViewContainer"] > .main {
-                background-color: #f1f8e9; /* Lighter green for content */
-                border: 2px solid #a5d6a7;
-                border-radius: 10px;
-                padding: 2rem;
+            /* Custom Header */
+            .custom-header {
+                background-color: #006400; /* Dark green header */
+                padding: 1rem;
+                border-radius: 10px 10px 0 0;
+                color: white;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }
-
-            /* Sidebar styling */
-            [data-testid="stSidebar"] {
-                background-color: #c8e6c9; /* Slightly darker green for sidebar */
-                border-right: 2px solid #a5d6a7;
+            .custom-header h1 {
+                margin: 0;
+                font-size: 2rem;
+                color: #ffffff;
             }
-            [data-testid="stSidebar"] h1 {
-                color: #1b5e20; /* Dark green for sidebar title */
-                text-align: center;
+            .nav-links {
+                display: flex;
+                gap: 15px;
             }
-            .st-emotion-cache-1cypcdb { /* Sidebar radio buttons */
-                background-color: #e8f5e9;
+            .nav-links button {
+                background-color: transparent;
+                color: white;
+                border: 1px solid white;
                 border-radius: 5px;
-                padding: 10px;
-                border: 1px solid #a5d6a7;
+                padding: 8px 15px;
+                cursor: pointer;
+                transition: background-color 0.3s, color 0.3s;
+            }
+            .nav-links button:hover, .nav-links button.active {
+                background-color: #ffffff;
+                color: #006400;
+            }
+            
+            /* Custom Footer */
+            .custom-footer {
+                text-align: center;
+                padding: 1rem;
+                margin-top: 2rem;
+                color: #006400;
+                border-top: 2px solid #a5d6a7;
             }
 
             /* Page titles */
             h1, h2 {
-                color: #2e7d32; /* Darker green for titles */
+                color: #2e7d32;
                 border-bottom: 2px solid #a5d6a7;
                 padding-bottom: 5px;
             }
-
-            /* Subheaders for plant names */
-            h3 {
-                color: #388e3c;
-            }
-
-            /* Custom expander styling */
-            .st-emotion-cache-p5msec { /* Expander header */
-                background-color: #dcedc8;
-                border-radius: 5px;
-            }
-            
-            /* Custom button styling */
-            .stButton > button {
-                background-color: #4caf50;
-                color: white;
-                border-radius: 5px;
-                border: none;
-                padding: 10px 20px;
-            }
-            .stButton > button:hover {
-                background-color: #66bb6a;
-            }
-            
-            /* Circular images for home page */
-            .circular-image img {
-                border: 4px solid #a5d6a7;
-                border-radius: 50%;
-                width: 150px;
-                height: 150px;
-                object-fit: cover;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
-            .image-caption {
-                text-align: center;
-                color: #1b5e20;
-                font-weight: bold;
-                margin-top: 10px;
-            }
+            h3 { color: #388e3c; }
         </style>
     """, unsafe_allow_html=True)
 
+def custom_header():
+    """Creates a custom header with navigation."""
+    # Initialize session state for navigation
+    if 'page' not in st.session_state:
+        st.session_state.page = 'Home'
+
+    # Function to update page state
+    def set_page(page_name):
+        st.session_state.page = page_name
+
+    # Display header
+    st.markdown('<div class="custom-header"><h1>🌿 Plant Therapeutic DB</h1><div id="nav-container"></div></div>', unsafe_allow_html=True)
+    
+    # Navigation buttons
+    nav_cols = st.columns(6)
+    pages = ["Home", "Browse", "Search", "Statistics", "Contact", "Download"]
+    for i, page in enumerate(pages):
+        active_class = "active" if st.session_state.page == page else ""
+        nav_cols[i].button(page, on_click=set_page, args=(page,), type="secondary", use_container_width=True)
+
+
 # --- PAGE DEFINITIONS ---
 def home_page():
-    """Defines the content of the Home page with interactive elements."""
-    st.title("Plant Therapeutic Database")
-    st.markdown("""
-    Welcome! This database is a dedicated resource for exploring the therapeutic properties of plants from the North-Eastern region of India. Browse through different plant families, search for specific information, and download the data for your own research.
-    """)
-    st.divider()
-
-    st.header("Featured Plant Families")
-    
-    # Example of an interactive, visually appealing layout
-    cols = st.columns(4)
-    families_to_feature = ["Polygonaceae", "Rosaceae", "Rubiaceae", "Rutaceae"]
-    placeholders = [
-        "https://placehold.co/150x150/81c784/ffffff?text=Polygonum",
-        "https://placehold.co/150x150/a5d6a7/ffffff?text=Rose",
-        "https://placehold.co/150x150/66bb6a/ffffff?text=Coffee",
-        "https://placehold.co/150x150/4caf50/ffffff?text=Citrus"
-    ]
-
-    for i, col in enumerate(cols):
-        with col:
-            st.markdown(f'<div class="circular-image"><img src="{placeholders[i]}" alt="{families_to_feature[i]}"></div>', unsafe_allow_html=True)
-            st.markdown(f'<p class="image-caption">{families_to_feature[i]}</p>', unsafe_allow_html=True)
+    st.title("Welcome to the Plant Database")
+    st.markdown("This database is a dedicated resource for exploring the therapeutic properties of plants from the North-Eastern region of India.")
+    st.image("https://placehold.co/1200x400/a5d6a7/1b5e20?text=Medicinal+Plants+of+NE+India", use_column_width=True)
 
 def browse_page():
-    """Defines the content of the Browse page with expandable sections."""
     st.title("Browse by Plant Family")
-    st.markdown("Select a plant family to see the species and their details.")
-
     conn = get_db_connection()
     if not conn: return
-
     try:
-        # Fetch families and the plants within them
         families_df = pd.read_sql("SELECT DISTINCT Family FROM plants ORDER BY Family", conn)
-        plants_df = pd.read_sql("SELECT Name_of_Plant, Scientific_Name, Family, Therapeutic_Use, Tissue_Part, Preparation_Method, Phytochemicals FROM plants", conn)
-
+        plants_df = pd.read_sql("SELECT * FROM plants", conn)
         for family in families_df['Family']:
             with st.expander(f"Family: {family}"):
                 family_plants = plants_df[plants_df['Family'] == family]
-                if not family_plants.empty:
-                    for _, row in family_plants.iterrows():
-                        st.subheader(row['Name_of_Plant'])
-                        st.markdown(f"**Scientific Name:** *{row['Scientific_Name']}*")
-                        st.markdown(f"**Therapeutic Use:** {row['Therapeutic_Use']}")
-                        st.markdown(f"**Tissue & Part:** {row['Tissue_Part']}")
-                        st.markdown(f"**Preparation Method:** {row['Preparation_Method']}")
-                        st.markdown(f"**Phytochemical(s):** {row['Phytochemicals']}")
-                        st.markdown("---")
-                else:
-                    st.write("No plants listed for this family.")
-    except Exception as e:
-        st.error(f"An error occurred while fetching data: {e}")
-    
-    conn.close()
+                for _, row in family_plants.iterrows():
+                    st.subheader(row['Name_of_Plant'])
+                    st.markdown(f"**Scientific Name:** *{row['Scientific_Name']}*")
+                    st.markdown(f"**Therapeutic Use:** {row['Therapeutic_Use']}")
+                    st.markdown("---")
+    finally:
+        conn.close()
 
 def search_page():
-    """Defines the content of the Advanced Search page."""
     st.title("Advanced Search")
-    st.markdown("Use the fields below to perform a detailed search.")
-
     with st.form("search_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            name_query = st.text_input("Plant Name (Common or Scientific)")
-            use_query = st.text_input("Therapeutic Use")
-        with col2:
-            family_query = st.text_input("Plant Family")
-            phytochemical_query = st.text_input("Phytochemical")
-        
+        name_query = st.text_input("Plant Name (Common or Scientific)")
+        use_query = st.text_input("Therapeutic Use")
         submitted = st.form_submit_button("Search")
-
     if submitted:
         conn = get_db_connection()
         if not conn: return
-        
-        # Build the query dynamically
-        query = "SELECT * FROM plants WHERE 1=1"
-        params = []
-        if name_query:
-            query += " AND (Name_of_Plant LIKE ? OR Scientific_Name LIKE ?)"
-            params.extend([f'%{name_query}%', f'%{name_query}%'])
-        if use_query:
-            query += " AND Therapeutic_Use LIKE ?"
-            params.append(f'%{use_query}%')
-        if family_query:
-            query += " AND Family LIKE ?"
-            params.append(f'%{family_query}%')
-        if phytochemical_query:
-            query += " AND Phytochemicals LIKE ?"
-            params.append(f'%{phytochemical_query}%')
-        
         try:
-            results_df = pd.read_sql(query, conn, params=tuple(params))
+            query = "SELECT Name_of_Plant, Scientific_Name, Family, Therapeutic_Use FROM plants WHERE (Name_of_Plant LIKE ? OR Scientific_Name LIKE ?) AND Therapeutic_Use LIKE ?"
+            params = (f'%{name_query}%', f'%{name_query}%', f'%{use_query}%')
+            results_df = pd.read_sql(query, conn, params=params)
             st.write(f"Found **{len(results_df)}** results.")
             st.dataframe(results_df)
-        except Exception as e:
-            st.error(f"Search error: {e}")
+        finally:
+            conn.close()
+
+def statistics_page():
+    st.title("Database Statistics")
+    conn = get_db_connection()
+    if not conn: return
+    try:
+        total_plants = pd.read_sql("SELECT COUNT(*) as count FROM plants", conn)['count'][0]
+        total_families = pd.read_sql("SELECT COUNT(DISTINCT Family) as count FROM plants", conn)['count'][0]
+        plants_per_family = pd.read_sql("SELECT Family, COUNT(*) as PlantCount FROM plants GROUP BY Family ORDER BY PlantCount DESC", conn)
+
+        col1, col2 = st.columns(2)
+        col1.metric("Total Plant Entries", total_plants)
+        col2.metric("Total Plant Families", total_families)
         
+        st.subheader("Plants per Family")
+        st.bar_chart(plants_per_family.set_index('Family'))
+
+    finally:
         conn.close()
 
 def contact_page():
-    """Defines the content of the Contact page."""
     st.title("Contact Us")
-    st.markdown("We welcome your questions, feedback, and potential collaborations.")
-    
     with st.form("contact_form"):
-        col1, col2 = st.columns([1, 2])
-        with col1:
-             st.image("https://placehold.co/200x200/a5d6a7/1b5e20?text=Contact", use_column_width=True)
-        with col2:
-            name = st.text_input("Your Name")
-            email = st.text_input("Your Email")
-            message = st.text_area("Message", height=150)
-        
-        submitted = st.form_submit_button("Submit Message")
-        if submitted:
-            st.success("Thank you! Your message has been sent.")
+        name = st.text_input("Your Name")
+        email = st.text_input("Your Email")
+        message = st.text_area("Message")
+        st.form_submit_button("Submit")
 
 def download_page():
-    """Defines the content of the Download page."""
     st.title("Download the Dataset")
-    st.markdown("You can download the complete dataset used in this application in CSV format.")
-    
     if os.path.exists(CSV_PATH):
         with open(CSV_PATH, "rb") as file:
-            st.download_button(
-                label="Download CSV",
-                data=file,
-                file_name="medicinal_plants_database.csv",
-                mime="text/csv"
-            )
-    else:
-        st.error(f"The data file '{CSV_PATH}' was not found.")
+            st.download_button("Download CSV", file, "medicinal_plants_database.csv", "text/csv")
+
+def custom_footer():
+    st.markdown('<div class="custom-footer">© 2025 Plant Therapeutic DB | Design by Shailesh Lab</div>', unsafe_allow_html=True)
+
 
 # --- MAIN APP LOGIC ---
 def main():
-    """Main function to set up and run the Streamlit app pages."""
     st.set_page_config(page_title="Plant DB", layout="wide")
     
-    # Apply custom styling
+    # Load custom CSS and header
     load_custom_css()
-    
-    # Ensure database is ready
-    setup_database()
+    custom_header() # This replaces the sidebar navigation
 
-    st.sidebar.title("Main Menu")
-    page_options = ["Home", "Browse", "Advanced Search", "Contact", "Download"]
-    page = st.sidebar.radio("Navigate", page_options)
-    
-    st.sidebar.markdown("---")
-    st.sidebar.info("© 2025 Plant Therapeutic DB")
-
+    # Page routing based on session state
+    page = st.session_state.get('page', 'Home')
     if page == "Home":
         home_page()
     elif page == "Browse":
         browse_page()
-    elif page == "Advanced Search":
+    elif page == "Search":
         search_page()
+    elif page == "Statistics":
+        statistics_page()
     elif page == "Contact":
         contact_page()
     elif page == "Download":
         download_page()
+    
+    # Load custom footer
+    custom_footer()
 
-# This block ensures the app runs when the script is executed
 if __name__ == '__main__':
+    # Ensure database is created on first run
+    setup_database()
     main()
