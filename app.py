@@ -7,8 +7,8 @@ import sys
 # Add the root directory to the Python path to import create_database
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Import the database setup function from create_database.py
-from create_database import setup_database
+# Import the database creation function from create_database.py
+from create_database import create_database
 
 DB_PATH = 'plants.db'
 CSV_PATH = 'medicinal_plants.csv'
@@ -130,7 +130,7 @@ def browse_page():
                     for _, row in plants_df.iterrows():
                         st.subheader(row['Name_of_Plant'])
                         st.markdown(f"**Scientific Name:** *{row['Scientific_Name']}*")
-                        st.markdown(f"**Region:** {row['Region']}")
+                        st.markdown(f"**Region:** {row['NE_State_Availability'] if row['NE_State_Availability'] else 'N/A'}")
                         st.markdown(f"**Therapeutic Use:** {row['Therapeutic_Use']}")
                         st.markdown("---")
         finally:
@@ -140,17 +140,17 @@ def search_page():
     st.title("Advanced Search")
     with st.form("search_form"):
         name = st.text_input("Plant Name (Common or Scientific)")
-        region = st.selectbox("Region", ["All"] + pd.read_sql("SELECT DISTINCT Region FROM plants", get_db_connection())['Region'].tolist())
+        region = st.selectbox("Region", ["All"] + [row[0] for row in get_db_connection().execute("SELECT DISTINCT NE_State_Availability FROM plants WHERE NE_State_Availability IS NOT NULL").fetchall()])
         use = st.text_input("Therapeutic Use")
         submitted = st.form_submit_button("Search")
     if submitted:
         conn = get_db_connection()
         if conn:
             try:
-                query = "SELECT Name_of_Plant, Scientific_Name, Family, Region, Therapeutic_Use FROM plants WHERE (Name_of_Plant LIKE ? OR Scientific_Name LIKE ?) AND Therapeutic_Use LIKE ?"
+                query = "SELECT Name_of_Plant, Scientific_Name, Family, NE_State_Availability, Therapeutic_Use FROM plants WHERE (Name_of_Plant LIKE ? OR Scientific_Name LIKE ?) AND Therapeutic_Use LIKE ?"
                 params = (f'%{name}%', f'%{name}%', f'%{use}%')
-                if region != "All":
-                    query += " AND Region = ?"
+                if region != "All" and region:
+                    query += " AND NE_State_Availability = ?"
                     params += (region,)
                 results_df = pd.read_sql(query, conn, params=params)
                 st.write(f"Found **{len(results_df)}** results.")
@@ -187,7 +187,7 @@ def download_page():
     st.title("Download the Dataset")
     if os.path.exists(CSV_PATH):
         with open(CSV_PATH, "rb") as file:
-            st.download_button("Download CSV", file, "medicinal_plants_india.csv", "text/csv")
+            st.download_button("Download CSV", file, "medicinal_plants.csv", "text/csv")
 
 def custom_footer():
     st.markdown('<div class="custom-footer">© 2025 Medicinal Plants of India DB | Design by Shailesh Lab</div>', unsafe_allow_html=True)
@@ -198,9 +198,9 @@ def main():
     load_custom_css()
     custom_header()
 
-    # Ensure database is set up on first run
+    # Ensure database is created on first run
     if not os.path.exists(DB_PATH):
-        setup_database()
+        create_database(csv_path=CSV_PATH, db_path=DB_PATH)
 
     page = st.session_state.get('page', 'Home')
     if page == "Home":
